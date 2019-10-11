@@ -7,7 +7,7 @@ import progressbar
 from backports import csv
 from functools import wraps
 import threading
-from elasticsearch_dsl import Search
+# from elasticsearch_dsl import Search
 from multiprocessing import Pool
                                                                   
 
