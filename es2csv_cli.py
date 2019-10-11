@@ -51,6 +51,7 @@ def main():
     es.create_connection()
     es.check_indexes()
     es.search_query()
+    # es.slice_record()
     es.write_to_csv()
     es.clean_scroll_ids()
 

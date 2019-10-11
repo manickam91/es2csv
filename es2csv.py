@@ -6,9 +6,12 @@ import elasticsearch
 import progressbar
 from backports import csv
 from functools import wraps
+import threading
+from elasticsearch_dsl import Search
+from multiprocessing import Pool
+                                                                  
 
-
-FLUSH_BUFFER = 1000  # Chunk of docs to flush in temp file
+FLUSH_BUFFER = 20000  # Chunk of docs to flush in temp file
 CONNECTION_TIMEOUT = 120
 TIMES_TO_TRY = 3
 RETRY_DELAY = 60
@@ -61,6 +64,7 @@ class Es2csv:
                                          client_cert=self.opts.client_cert, client_key=self.opts.client_key)
         es.cluster.health()
         self.es_conn = es
+       
 
     @retry(elasticsearch.exceptions.ConnectionError, tries=TIMES_TO_TRY)
     def check_indexes(self):
@@ -115,6 +119,7 @@ class Es2csv:
             search_args['_source_include'] = ','.join(self.opts.fields)
             self.csv_headers.extend([unicode(field, "utf-8") for field in self.opts.fields if '*' not in field])
 
+
         if self.opts.debug_mode:
             print('Using these indices: {}.'.format(', '.join(self.opts.index_prefixes)))
             print('Query[{0[0]}]: {0[1]}.'.format(
@@ -124,8 +129,9 @@ class Es2csv:
             print('Sorting by: {}.'.format(', '.join(self.opts.sort)))
 
         res = self.es_conn.search(**search_args)
+                          
         self.num_results = res['hits']['total']
-
+     
         print('Found {} results.'.format(self.num_results))
         if self.opts.debug_mode:
             print(json.dumps(res, ensure_ascii=False).encode('utf8'))
@@ -188,6 +194,9 @@ class Es2csv:
                 else:
                     [to_keyvalue_pairs(item, ancestors + [str(index)]) for index, item in enumerate(source)]
             else:
+                source = str(repr(source)) if isinstance(source,float) else source
+                source = str() if source == 'null' else source
+
                 header = header_delimeter.join(ancestors)
                 if header not in self.csv_headers:
                     self.csv_headers.append(header)
@@ -237,3 +246,14 @@ class Es2csv:
             self.es_conn.clear_scroll(body=','.join(self.scroll_ids))
         except:
             pass
+
+   
+
+    # def slice_record(self):                                                       
+    #     self.s = Search(using=self.es_conn,index=self.opts.index_prefixes)
+    #     print("self.opts.fields",self.opts.fields)
+    #     self.s = self.s.source(self.opts.fields)
+    #     self.s = self.s.extra(slice={"id": 0, "max": 10}) 
+    #     print(self.s.count)
+    #     for item in self.s.scan():
+    #             print("item",item)       
