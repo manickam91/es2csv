@@ -195,7 +195,7 @@ class Es2csv:
                     [to_keyvalue_pairs(item, ancestors + [str(index)]) for index, item in enumerate(source)]
             else:
                 source = str(repr(source)) if isinstance(source,float) else source
-                source = str() if source == 'null' else source
+                source = '' if source == 'null' or source == 'NULL'  else source
 
                 header = header_delimeter.join(ancestors)
                 if header not in self.csv_headers:
